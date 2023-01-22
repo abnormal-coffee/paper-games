@@ -9,15 +9,11 @@ mod navbar;
 mod games;
 
 
-#[derive(serde::Deserialize, serde::Serialize)]
-enum Tab {
+#[derive(serde::Deserialize, serde::Serialize, PartialEq)]
+pub enum Tab {
     Home,
     Games(games::Games),
     Help,
-}
-
-enum Game {
-    
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -37,9 +33,9 @@ impl Default for AppState {
 impl AppState {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         if let Some(storage) = cc.storage {
+            catppuccin_egui::set_theme(&cc.egui_ctx, catppuccin_egui::MACCHIATO);
             return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
         }
-        catppuccin_egui::set_theme(&cc.egui_ctx, catppuccin_egui::MOCHA);
         Default::default()
     }
 }
@@ -53,8 +49,8 @@ impl eframe::App for AppState {
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
         let Self { tab } = self;
 
-        *tab = Tab::Games(games::Games::default());
-        
+        navbar::NavBar::display(ctx, tab);
+                
         match tab {
             Tab::Home => {}
             Tab::Help => {}
