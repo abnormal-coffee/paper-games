@@ -56,9 +56,7 @@ enum StartingPlayer {
 #[derive(PartialEq, Serialize, Deserialize, Clone)]
 enum AIDifficulty {
     Easy,
-    Medium,
-    Hard,
-    Adaptive,
+    Perfect,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
@@ -103,14 +101,16 @@ impl Tile {
 }
 
 impl Board {
-    fn display_board(board: &mut self::Board, ctx: &Context, mut player: Player,) {
+    fn display_board(board: &mut self::Board, ctx: &Context, player: &mut Player,) {
         eframe::egui::CentralPanel::default().show(ctx, |ui| {
             eframe::egui::Grid::new("some_unique_id").spacing(Vec2{x: 10., y: 10.}).show(ui, |ui| {
                 for x in 0..3 {
                     for i in 0..3 {
                         if ui.add(eframe::egui::Button::new(RichText::new(Tile::tile_char(board.board[i + (3*x)])).size(200.)).min_size(Vec2{x: 256., y: 256.})).clicked() {
-                            board.board[i + (3*x)] = Tile::Played(player.clone());
-                            player = player.clone().swap();
+                            if board.board[i + (3*x)] == Tile::Empty {
+                                board.board[i + (3*x)] = Tile::Played(player.clone());
+                                *player = player.clone().swap();
+                            }
                         }
                     }
                     ui.end_row();
@@ -124,7 +124,7 @@ trait Game {
     fn setup(game_data: &mut GameData, ctx: &Context) {
         eframe::egui::CentralPanel::default().show(ctx, |ui | {
             ui.radio_value(&mut game_data.mode, self::Mode::TwoPlayer(StartingPlayer::Random), "Two Player Local");
-            ui.radio_value(&mut game_data.mode, self::Mode::PlayerVsAi(AIDifficulty::Medium), "Single Player Vs AI");
+            ui.radio_value(&mut game_data.mode, self::Mode::PlayerVsAi(AIDifficulty::Easy), "Single Player Vs AI");
             match &mut game_data.mode {
                 Mode::TwoPlayer(player) => {
                     ui.collapsing("Starting Player", |ui| {
@@ -136,9 +136,7 @@ trait Game {
                 Mode::PlayerVsAi(difficulty) => {
                     ui.collapsing("Difficulty", |ui| {
                         ui.radio_value(difficulty, AIDifficulty::Easy, "Easy AI");
-                        ui.radio_value(difficulty, AIDifficulty::Medium, "Medium AI");
-                        ui.radio_value(difficulty, AIDifficulty::Hard, "Hard AI");
-                        ui.radio_value(difficulty, AIDifficulty::Adaptive, "Adaptive AI");
+                        ui.radio_value(difficulty, AIDifficulty::Perfect, "Perfect");
                     });
                 }
             }
@@ -151,17 +149,44 @@ trait Game {
         });
     }
     fn game(game_data: &mut GameData, ctx: &Context) {
-        if let GameState::Started(_, mut player) = game_data.game_state {
+        if let GameState::Started(_, player) = &mut game_data.game_state {
             Board::display_board(&mut game_data.board, ctx, player)
+            
         }
     }
 }
+
+trait Result {
+    fn draw(ctx: &Context, game_data: &mut GameData) {
+        eframe::egui::Window::new("Result").title_bar(false).collapsible(false).show(ctx, |ui| {
+            ui.add(eframe::egui::Label::new("The Game Is A Draw"));
+            if ui.button("New Game").clicked() {
+                *game_data = GameData::default();
+            }
+        });
+    }
+    fn win(ctx: &Context, game_data: &mut GameData, winner: Player) {
+        eframe::egui::Window::new("Result").title_bar(false).collapsible(false).show(ctx, |ui| {
+            match winner {
+                Player::Zero => {ui.add(eframe::egui::Label::new("Naughts Win"));}
+                Player::Cross => {ui.add(eframe::egui::Label::new("Crosses Win"));}
+            }
+            if ui.button("New Game").clicked() {
+                *game_data = GameData::default();
+            }
+        });
+    }
+}
+
+impl Result for GameResult {}
 
 impl GameData {
     pub fn ui(game_data: &mut GameData, ctx: &Context) {
         match game_data.game_state {
             GameState::Options => {GameData::setup(game_data, ctx)}
-            GameState::Started(_, _) => {GameData::game(game_data, ctx)}
+            GameState::Started(GameResult::Draw, _) => {GameResult::draw(ctx, game_data)}
+            GameState::Started(GameResult::Win(winner), _) => {GameResult::win(ctx, game_data, winner)}
+            GameState::Started(GameResult::Unfinished, _) => {GameData::game(game_data, ctx)}
         }
     }
 }
@@ -169,22 +194,6 @@ impl GameData {
 impl Game for GameData {}
 
 trait Round {
-    // fn request_play() -> usize {
-        // loop {
-        //     println!("Please input the index of the box")
-        //     let mut input = 0;
-        //     io::stdin::().read_line();
-        //     if let Ok() = io::stdin::().read_line(){
-                
-        //     }
-        // }
-    // }
-    // fn play(mut state: &mut self::Board, play: Play) -> Result<Board, String> {
-    //     match state[play.1] {
-    //         Tile::Empty => {state[play.1] = Tile::Played(play.0); return Ok(state.clone());}
-    //         Tile::Played(play) => {Err(format!("'{:?}' is not a valid play", play))}
-    //     }
-    // }
     fn check_win(state: self::Board) -> GameResult {
         match state.board {
             [Tile::Played(Player::Zero), Tile::Played(Player::Zero), Tile::Played(Player::Zero), _, _, _, _, _, _] => {return GameResult::Win(Player::Zero);}
@@ -201,11 +210,4 @@ trait Round {
             _ => {return GameResult::Unfinished;}
         }
     }
-}
-impl Round for Board {}
-
-fn game() {
-    let mut board: Board = Board::default();
-    
-    println!("Board: {:?}", board);
 }
