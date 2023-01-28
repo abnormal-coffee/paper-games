@@ -1,7 +1,6 @@
-use std::default;
 use tinyrand::{self, StdRand, RandRange};
 
-use eframe::{egui::{Ui, Context, RichText}, epaint::Vec2};
+use eframe::{egui::{Context, RichText}, epaint::Vec2};
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Clone)]
@@ -159,8 +158,8 @@ trait Game {
 trait Result {
     fn draw(ctx: &Context, game_data: &mut GameData) {
         eframe::egui::Window::new("Result").title_bar(false).collapsible(false).show(ctx, |ui| {
-            ui.add(eframe::egui::Label::new("The Game Is A Draw"));
-            if ui.button("New Game").clicked() {
+            ui.add(eframe::egui::Label::new(RichText::new("The Game Is A Draw").size(64.)));
+            if ui.button(RichText::new("New Game").size(32.)).clicked() {
                 *game_data = GameData::default();
             }
         });
@@ -168,10 +167,10 @@ trait Result {
     fn win(ctx: &Context, game_data: &mut GameData, winner: Player) {
         eframe::egui::Window::new("Result").title_bar(false).collapsible(false).show(ctx, |ui| {
             match winner {
-                Player::Zero => {ui.add(eframe::egui::Label::new("Naughts Win"));}
-                Player::Cross => {ui.add(eframe::egui::Label::new("Crosses Win"));}
+                Player::Zero => {ui.add(eframe::egui::Label::new(RichText::new("Naughts Win").size(64.)));}
+                Player::Cross => {ui.add(eframe::egui::Label::new(RichText::new("Crosses Win").size(64.)));}
             }
-            if ui.button("New Game").clicked() {
+            if ui.button(RichText::new("New Game").size(32.)).clicked() {
                 *game_data = GameData::default();
             }
         });
@@ -182,6 +181,9 @@ impl Result for GameResult {}
 
 impl GameData {
     pub fn ui(game_data: &mut GameData, ctx: &Context) {
+        if let GameResult::Win(player) = GameResult::check_win(game_data.board.clone()) {
+            game_data.game_state = GameState::Started(GameResult::Win(player), player);
+        }
         match game_data.game_state {
             GameState::Options => {GameData::setup(game_data, ctx)}
             GameState::Started(GameResult::Draw, _) => {GameResult::draw(ctx, game_data)}
@@ -211,3 +213,5 @@ trait Round {
         }
     }
 }
+
+impl Round for GameResult {}

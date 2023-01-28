@@ -3,7 +3,7 @@ use serde;
 use catppuccin_egui;
 
 use self::games::Games;
-
+use tinyrand::{Rand, StdRand};
 
 mod navbar;
 mod games;
@@ -19,13 +19,16 @@ pub enum Tab {
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
 pub struct AppState {
-    tab: Tab
+    tab: Tab,
+    #[serde(skip)]
+    random: StdRand,
 }
 
 impl Default for AppState {
     fn default() -> Self {
         Self {
-            tab: Tab::Home
+            tab: Tab::Home,
+            random: StdRand::default(),
         }
     }
 }
@@ -47,14 +50,14 @@ impl eframe::App for AppState {
 
 
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
-        let Self { tab } = self;
+        let Self { tab , random} = self;
 
-        navbar::NavBar::display(ctx, tab);
+        navbar::NavBar::display(ctx, tab, random);
                 
         match tab {
             Tab::Home => {}
             Tab::Help => {}
-            Tab::Games(games) => {games::Games::ui(games, ctx)}
+            Tab::Games(games) => {games::Games::ui(games, ctx, random)}
         }
 
     }

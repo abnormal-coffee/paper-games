@@ -34,8 +34,7 @@ impl SetTheme for NavBar {
 }
 
 impl NavBar {
-    pub fn display(ctx: &Context, tab: &mut Tab) {
-        let mut rng = StdRand::default();
+    pub fn display(ctx: &Context, tab: &mut Tab, random: &mut StdRand) {
         eframe::egui::TopBottomPanel::top("NavBar").min_height(40.).show(ctx, |ui| {
             ui.horizontal(|ui| {
                 if ui.add(eframe::egui::Button::new(RichText::new("Home").size(32.)).min_size(Vec2 { x: 128., y: 10. })).clicked() {
@@ -53,10 +52,10 @@ impl NavBar {
                 if ui.add(eframe::egui::Button::new(RichText::new("Help").size(32.)).min_size(Vec2 { x: 128., y: 10. })).clicked() {
                     *tab = Tab::Help;
                 }
-                ui.label(splash::splash(rng.next_lim_u32(5)));
+                ui.label(splash::splash(random.next_lim_u32(5)));
                 ui.vertical_centered(|ui| {
                     eframe::egui::Frame::dark_canvas(&ctx.style()).show(ui, |ui| {
-                        ui.add(eframe::egui::Label::new(RichText::from("Unintrusive banner advert baked into WASM - hard to block with adblock").size(32.).italics()))
+                        ui.add(eframe::egui::Label::new(RichText::from("Unintrusive banner advert baked into WASM - hard to block with adblock").size(32.).italics()).wrap(false))
                     });                    
                 });
             })
